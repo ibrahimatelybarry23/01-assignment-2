@@ -1,0 +1,235 @@
+---
+title: "Report Assignment 1"
+subtitle: "Nonlinear solvers and parameter estimation"
+author: "Ibrahima Tely Barry"
+jupyter: python3
+format:
+  pdf:
+    documentclass: scrartcl
+    number-sections: true
+    colorlinks: true
+    geometry:
+      - top=30mm
+      - left=25mm
+      - right=25mm
+      - bottom=30mm
+    header-includes: |
+      \usepackage{booktabs}
+      \usepackage{mathtools}
+      \usepackage{amsfonts}
+      \usepackage{amssymb}
+execute:
+  echo: false
+  warning: false
+---
+```{python}
+#| include: false
+# Setup: carico tutti i moduli e dati una volta sola
+import numpy as np
+import matplotlib.pyplot as plt
+from utils import bisection, newton, simplified_newton, p, A, X, Y, quasi_newton_nd
+plt.rcParams.update({'font.size': 12, 'lines.linewidth': 2})
+```
+
+# Introduction
+This report describes the implementation and numerical testing of nonlinear solver for root finding and parameter estimation problems.
+
+# Task 1: Methodology of nonlinear solvers
+In this task, i implemented three iterative algorithms to find the roots of a nonlinear function $f(x=0)=0$
+
+## Implemented Algorithms
+- **Bisection method**: Requires an initial interval $[a,b]$ where $f(a)\cdot f(b) <0$. The method converges by halving the current interval at each iteration.
+- **Newton's method**: Requires an initial guess $x_0$ and use both $f$ and its derivative $f'$The approximation is updated at each iteration following:
+$$
+x_{k+1}= x_k-\dfrac{f(x_k)}{f'(x_k)}
+$$
+
+- **Simplified Newton's method**: A variation of Newton's method where the derivative is fixed at $f'(x_0)$ for all iterations to reduce computational overhead.
+
+## Stopping criteria
+The algorithms terminate when one of the following conditions is met:
+
+1. **Maximal iterations** $(k_{\text{max}})$: Prevents infinite loops and limits computational time.
+2. **Residual tolerance** $(\varepsilon_{\text{res}})$: Stops when $|f(x_k)|$ is below a given threshold.
+3. **Increment tolerance** ($\epsilon_{\text{inc}}$): Stops when the difference between successive iterates $|x_k - x_{k-1}|$ is below the threshold.
+
+
+# Task 2: Numerical testing  
+The solvers were tested using the function $f(x)= x^3-x-1$. The tolerance were set to $\epsilon_{\text{res}}  = 10^{-10}$ and $\epsilon_{\text{inc}} = 10^{-10}$ with a maximum of $k_{\text{max}}= 100$ iterations.
+
+## Bisection method 
+The interval $[a,b] = [1,2]$ was chosen since $f(1)= -1 <0$ and $f(2)= 5 >0$. Since the function is continuos and changes sign on $[1,2]$, the intermediate value theorem guarantees the existence of at least one root in $(1,2)$.
+
+## Newton's Method
+The method was executed with initial guess $x_0= 0.58$. This value is near the crtical points $x \approx 0.58$. Starting close to this point causes the tangent line to project iterate far the root, leading to divergence. The method convergence for $x_0 = 0.58$ as the derivative is still sufficiently large. 
+
+## Simplified Newton's Method
+The initial guess $x_0 = 0.58$ used for the standard Newton's method did not lead to convergence for this variant. A minimum initial guess of $x_0 = 1.05$ was determined experimentally to achieve convergence. This method utilizes a fixed derivative $f'(x_0)$: if the derivative at $x_0$ is too small, the iteration becomes unstable.
+
+
+
+
+
+
+```{python}
+#| include: false
+f = lambda x: x**3 - x - 1
+df = lambda x: 3*x**2 - 1
+k_max, eps_res, eps_inc = 100, 1e-10, 1e-10
+
+x_bis, fx_bis = bisection(f, 1, 2, k_max, eps_res, eps_inc)
+
+x0_n = 0.58
+x_new, fx_new = newton(f, df, x0_n, k_max, eps_res, eps_inc)
+
+x0_sn = 1.05
+df_x0 = df(x0_sn)
+x_sn, fx_sn = simplified_newton(f, df_x0, x0_sn, k_max, eps_res, eps_inc)
+```
+```{python}
+#| label: fig-iterations
+#| fig-cap: "Iterates of the bisection,Newton,and simplified Newton, methods applied to $f(x)=x^3-x-1$"
+
+xx = np.linspace(0, 2, 1000)
+fxx = f(xx)
+
+fig = plt.figure(figsize=(12, 4))
+ax = fig.add_subplot(131)
+ax.plot(xx, fxx)
+ax.plot(x_bis, f(x_bis), '.-')
+ax.plot(xx, 0*xx, 'k')
+ax.set_title('Bisection  $[a,b] = [1,2]$')
+ax.grid(True)
+
+ax = fig.add_subplot(132)
+ax.plot(xx, fxx)
+ax.plot(x_new, f(x_new), '.-')
+ax.plot(xx, 0*xx, 'k')
+ax.set_title('Newton')
+ax.set_title('Newton  $x_0 = 0.58$')
+ax.grid(True)
+
+
+ax = fig.add_subplot(133)
+ax.plot(xx, fxx)
+ax.plot(x_sn, f(x_sn), '.-')
+ax.plot(xx, 0*xx, 'k')
+ax.set_title('Simplified Newton $x_0 = 1.05$')
+ax.grid(True)
+
+fig.tight_layout()
+plt.show()
+```
+
+
+```{python}
+#| label: fig-residuals
+#| fig-cap: "Residual convergence of the three solvers on $f(x) = x^3 - x - 1$"
+#| fig-pos: "H"
+fig = plt.figure(figsize=(5, 3.5))
+ax = fig.gca()
+ax.semilogy(fx_bis, '.-', label='Bisection')
+ax.semilogy(fx_new, '.-', label='Newton')
+ax.semilogy(fx_sn, '.-', label='Simplified Newton')
+ax.legend()
+ax.grid(True, which='both')
+plt.show()
+
+```
+
+
+# Task 3: Nonlinear least-squares parameter estimation
+
+The goal of this task is to estimate the source emissions $\overline x \in \mathbb{R}^{m}$ from sensor measurements  $\bar{y} \in \mathbb{R}^m$. 
+The estimation $\hat x$ is obteined by minimizing:
+$$
+F(x) = \|\bar{y} - p(x)\|^2, \quad \text{where} \quad p_i(x) \coloneqq \sum_{j=1}^{n} A_{ij} \left( \frac{x_j}{1 + \beta x_j} \right),
+$$
+by finding a stationary point $f(x)= \nabla F(x)= 0$
+$$
+f(x) = -2 \cdot \frac{A^T(\bar{y} - p(x))}{(1 + \beta x)^2}
+$$
+A Quasi-Newton method is used with the constant approximation $Df_0 = 2A^TA$, corresponding to the exact Jacobian in the linear case $\beta = 0$. At each step, the system $Df_0 \cdot \Delta = f(x_k)$ is solved and the iterate is updated as $x_{k+1} = x_k - \Delta$.
+
+
+
+```{python}
+#| include: false
+def f(x, y, A, beta):
+    return -2*(A.T @ (y - p(x, A, beta))) / (1 + beta*x)**2
+
+df0 = 2*A.T @ A
+bar_x = np.array([0, 0, 1, 0, 0, 0, 0])
+x0 = np.zeros(len(bar_x))
+
+beta_ref = 0.1
+bar_y = p(bar_x, A, beta_ref)
+x_iter_ref, _ = quasi_newton_nd(lambda x: f(x, bar_y, A, beta_ref), df0, x0, k_max, eps_res, eps_inc)
+hat_x = x_iter_ref[-1]
+```
+
+```{python}
+#| label: fig-sources-estimation
+#| fig-cap: "Left: sources and sensors sized by intensity. Right: exact vs estimated emissions. Both for $\\beta = 0.1$"
+#| fig-pos: "H"
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4))
+
+for idx in range(len(X)):
+    ms = np.abs(bar_x[idx]) / np.linalg.norm(bar_x) * 50
+    ax1.plot(X[idx, 0], X[idx, 1], 'o', alpha=0.2, markersize=ms, color='#1f77b4')
+for idx in range(len(Y)):
+    ms = np.abs(bar_y[idx]) / np.linalg.norm(bar_y) * 50
+    ax1.plot(Y[idx, 0], Y[idx, 1], 'o', alpha=0.2, markersize=ms, color='#ff7f0e')
+ax1.plot(X[:, 0], X[:, 1], '*', label='Sources')
+ax1.plot(Y[:, 0], Y[:, 1], 'o', label='Sensors')
+ax1.legend()
+ax1.grid(True)
+
+xx_bar = np.arange(len(bar_x))
+width = 0.3
+ax2.bar(xx_bar, bar_x, width=width, label='Exact')
+ax2.bar(xx_bar + width, hat_x, width=width, label='Estimated')
+ax2.set_xticks(xx_bar + width / 2, ['Source %d' % (i+1) for i in xx_bar], rotation='vertical')
+ax2.legend()
+ax2.grid(True)
+
+fig.tight_layout()
+plt.show()
+```
+
+The estimation error $\|\bar{x} - \hat{x}\|$ was evaluated for $\beta$ ranging from $0$ to $0.1$,
+with true source configuration $\bar{x} = (0, 0, 1, 0, 0, 0, 0)$. When $\beta = 0$, the
+approximation is exact and the error is near machine precision. As $\beta$ increases,
+the model becomes more nonlinear and the fixed Jacobian becomes less accurate,
+so the estimation error increases.
+
+```{python}
+#| label: fig-error
+#| fig-cap: "Error $\\|\\bar{x} - \\hat{x}\\|$ vs. $\\beta$ for $\\bar{x} = (0,0,1,0,0,0,0)$."
+# #| fig-pos: "H"
+betas = np.arange(0, 0.11, 0.01)
+errors = np.zeros(len(betas))
+
+for i, b in enumerate(betas):
+    bar_y_b = p(bar_x, A, b)
+    f_b = lambda x: f(x, bar_y_b, A, b)
+    x_iter_b, _ = quasi_newton_nd(f_b, df0, x0, k_max, eps_res, eps_inc)
+    hat_x_b = x_iter_b[-1]
+    errors[i] = np.linalg.norm(bar_x - hat_x_b)
+
+fig = plt.figure(2)
+fig.clf()
+ax = fig.gca()
+ax.semilogy(betas, errors, 'o-')                  
+fig.tight_layout()
+ax.grid(True)
+
+fig.savefig('error_vs_beta.png', dpi=150, bbox_inches='tight')
+
+
+fig.savefig('error_vs_beta.png', dpi=150, bbox_inches='tight')
+plt.show()
+
+
+
+```
