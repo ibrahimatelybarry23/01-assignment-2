@@ -1,7 +1,7 @@
 ---
 title: "Report Assignment 1"
 subtitle: "Nonlinear solvers and parameter estimation"
-author: "Ibrahima Tely Barry"
+author: "Ibrahima Tely Barry 892315"
 jupyter: python3
 format:
   pdf:
@@ -35,11 +35,11 @@ plt.rcParams.update({'font.size': 12, 'lines.linewidth': 2})
 This report describes the implementation and numerical testing of nonlinear solver for root finding and parameter estimation problems.
 
 # Task 1: Methodology of nonlinear solvers
-In this task, i implemented three iterative algorithms to find the roots of a nonlinear function $f(x=0)=0$
+In this task, i implemented three iterative algorithms to find the roots of a nonlinear function $f(x)=0$
 
 ## Implemented Algorithms
 - **Bisection method**: Requires an initial interval $[a,b]$ where $f(a)\cdot f(b) <0$. The method converges by halving the current interval at each iteration.
-- **Newton's method**: Requires an initial guess $x_0$ and use both $f$ and its derivative $f'$The approximation is updated at each iteration following:
+- **Newton's method**: Requires an initial guess $x_0$ and use both $f$ and its derivative $f'$.The approximation is updated at each iteration following:
 $$
 x_{k+1}= x_k-\dfrac{f(x_k)}{f'(x_k)}
 $$
@@ -58,10 +58,15 @@ The algorithms terminate when one of the following conditions is met:
 The solvers were tested using the function $f(x)= x^3-x-1$. The tolerance were set to $\epsilon_{\text{res}}  = 10^{-10}$ and $\epsilon_{\text{inc}} = 10^{-10}$ with a maximum of $k_{\text{max}}= 100$ iterations.
 
 ## Bisection method 
-The interval $[a,b] = [1,2]$ was chosen since $f(1)= -1 <0$ and $f(2)= 5 >0$. Since the function is continuos and changes sign on $[1,2]$, the intermediate value theorem guarantees the existence of at least one root in $(1,2)$.
+The interval $[a,b] = [1,2]$ was chosen since $f(1)= -1 <0$ and $f(2)= 5 >0$. Since the function is continuous and changes sign on $[1,2]$, the intermediate value theorem guarantees the existence of at least one root in $(1,2)$.
+
+```{python}
+
+1/np.sqrt(3)
+```
 
 ## Newton's Method
-The method was executed with initial guess $x_0= 0.58$. This value is near the crtical points $x \approx 0.58$. Starting close to this point causes the tangent line to project iterate far the root, leading to divergence. The method convergence for $x_0 = 0.58$ as the derivative is still sufficiently large. 
+The method was executed with initial guess $x_0= 0.58$. This value is near the crtical points $x \approx 0.577$, where $f(x)= 3x^2-1$. Starting close to this point causes the tangent line to project iterate far the root, leading to divergence. The method converges for $x_0 = 0.58$ as the derivative is still sufficiently large. 
 
 ## Simplified Newton's Method
 The initial guess $x_0 = 0.58$ used for the standard Newton's method did not lead to convergence for this variant. A minimum initial guess of $x_0 = 1.05$ was determined experimentally to achieve convergence. This method utilizes a fixed derivative $f'(x_0)$: if the derivative at $x_0$ is too small, the iteration becomes unstable.
@@ -105,7 +110,6 @@ ax = fig.add_subplot(132)
 ax.plot(xx, fxx)
 ax.plot(x_new, f(x_new), '.-')
 ax.plot(xx, 0*xx, 'k')
-ax.set_title('Newton')
 ax.set_title('Newton  $x_0 = 0.58$')
 ax.grid(True)
 
@@ -140,8 +144,8 @@ plt.show()
 
 # Task 3: Nonlinear least-squares parameter estimation
 
-The goal of this task is to estimate the source emissions $\overline x \in \mathbb{R}^{m}$ from sensor measurements  $\bar{y} \in \mathbb{R}^m$. 
-The estimation $\hat x$ is obteined by minimizing:
+The goal of this task is to estimate the source emissions $\overline x \in \mathbb{R}^{n}$ from sensor measurements  $\bar{y} \in \mathbb{R}^m$. 
+The estimation $\hat x$ is obtained by minimizing:
 $$
 F(x) = \|\bar{y} - p(x)\|^2, \quad \text{where} \quad p_i(x) \coloneqq \sum_{j=1}^{n} A_{ij} \left( \frac{x_j}{1 + \beta x_j} \right),
 $$
@@ -224,10 +228,6 @@ ax.semilogy(betas, errors, 'o-')
 fig.tight_layout()
 ax.grid(True)
 
-fig.savefig('error_vs_beta.png', dpi=150, bbox_inches='tight')
-
-
-fig.savefig('error_vs_beta.png', dpi=150, bbox_inches='tight')
 plt.show()
 
 

@@ -69,7 +69,6 @@ ax.set_xticks(xx + width, ['Source %d' %(i+1) for i in xx], rotation='vertical')
 ax.legend()
 fig.tight_layout()
 
-fig.savefig('bar_chart_beta_01.png', dpi=150, bbox_inches='tight')
 
 
 
@@ -92,10 +91,8 @@ ax.semilogy(betas, errors, 'o-')
 ax.grid(True)
 
 fig.tight_layout()
-fig.savefig('error_vs_beta.png', dpi=150, bbox_inches='tight')
 
 
-fig.savefig('error_vs_beta.png', dpi=150, bbox_inches='tight')
 plt.show()
 
 
