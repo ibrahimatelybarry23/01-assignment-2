@@ -72,7 +72,7 @@ fig.tight_layout()
 
 
 
-# c 
+# Task 3 (c) error
 
 betas = np.arange(0, 0.11, 0.01)
 errors = np.zeros(len(betas))
