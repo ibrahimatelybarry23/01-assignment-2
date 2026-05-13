@@ -20,6 +20,7 @@ eps_res = 1e-10
 eps_inc = 1e-10
 
 
+
 #%% Bisection method
 # Define the initial interval
 a = 1
@@ -39,11 +40,34 @@ x_new, fx_new = newton(f, df, x0, k_max, eps_res, eps_inc)
 
 #%% Simplified Newton method
 # Define the initial guess
-x0 = 1.05
+x0 = 1.06
 
 # Compute the solution
 df_x0 = df(x0)
 x_sim_new, fx_sim_new = simplified_newton(f, df_x0, x0, k_max, eps_res, eps_inc)
+
+
+
+
+
+
+
+
+#%% Plot f on [-3, 3] to locate the real roots
+x_ = np.linspace(-3, 3, 1000)
+fig = plt.figure(0)
+fig.clf()
+ax = fig.gca()
+ax.plot(x_, f(x_))
+ax.plot(x_, 0 * x_, 'k')
+ax.set_title(r'$f(x) = x^3 - x - 1$ on $[-3, 3]$')
+ax.grid(True)
+
+
+
+
+
+
 
 
 #%% Visualize the results
